@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Easy Foods | Premium Food Delivery</title>
+    <!-- Google Fonts & Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at 20% 30%, #0a0a1a, #03030c);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e1a2f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #bf4eff;
+            border-radius: 20px;
+        }
+
+        @keyframes fadeGlow {
+            0% { opacity: 0; transform: scale(0.96); filter: blur(2px); }
+            100% { opacity: 1; transform: scale(1); filter: blur(0); }
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 #bf4eff80; }
+            70% { box-shadow: 0 0 0 12px #bf4eff00; }
+            100% { box-shadow: 0 0 0 0 transparent; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .glass-card {
+            background: rgba(20, 15, 40, 0.55);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            border: 1px solid rgba(191, 78, 255, 0.3);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 15px rgba(191,78,255,0.2);
+            transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-8px);
+            border-color: #bf4eff;
+            box-shadow: 0 30px 50px rgba(191,78,255,0.25), 0 0 25px #bf4eff80;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #a855f7, #6d28d9);
+            border: none;
+            padding: 12px 32px;
+            border-radius: 60px;
+            font-weight: 700;
+            font-size: 1rem;
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(168,85,247,0.4);
+            animation: pulseGlow 2s infinite;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.03);
+            background: linear-gradient(135deg, #c084fc, #8b5cf6);
+            box-shadow: 0 8px 28px rgba(168,85,247,0.7);
+        }
+
+        .welcome-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, #0d071a, #020008);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(20px);
+            transition: opacity 0.8s ease, visibility 0.8s;
+        }
+
+        .welcome-content {
+            text-align: center;
+            animation: fadeGlow 1s ease-out;
+        }
+
+        .floating-icon {
+            animation: float 3s ease-in-out infinite;
+            display: inline-block;
+        }
+
+        .main-app {
+            opacity: 0;
+            transition: opacity 0.6s;
+        }
+
+        .food-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            padding: 1rem;
+        }
+
+        .food-card {
+            background: rgba(25, 20, 45, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 2rem;
+            overflow: hidden;
+            transition: all 0.3s;
+            border: 1px solid rgba(191, 78, 255, 0.3);
+            cursor: pointer;
+        }
+
+        .food-card:hover {
+            transform: translateY(-12px) scale(1.02);
+            border-color: #bf4eff;
+            box-shadow: 0 20px 40px rgba(191,78,255,0.3);
+        }
+
+        .food-card img {
+            transition: transform 0.3s;
+        }
+
+        .food-card:hover img {
+            transform: scale(1.05);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(12px);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            visibility: hidden;
+            opacity: 0;
+            transition: 0.3s;
+        }
+
+        .modal.active {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal-content {
+            max-width: 550px;
+            width: 90%;
+            background: rgba(18, 16, 28, 0.98);
+            backdrop-filter: blur(20px);
+            border-radius: 2rem;
+            padding: 2rem;
+            border: 1px solid rgba(191, 78, 255, 0.5);
+            box-shadow: 0 0 40px rgba(191,78,255,0.3);
+            animation: fadeGlow 0.3s ease-out;
+        }
+
+        input, textarea {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid #a855f770;
+            border-radius: 2rem;
+            padding: 12px 18px;
+            color: white;
+            width: 100%;
+            outline: none;
+            transition: 0.2s;
+            margin-bottom: 12px;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #bf4eff;
+            box-shadow: 0 0 10px #bf4eff;
+        }
+
+        .suggestions-row {
+            display: flex;
+            gap: 1.5rem;
+            overflow-x: auto;
+            padding: 0.5rem 0.2rem;
+            scrollbar-width: thin;
+        }
+
+        .suggestion-item {
+            min-width: 240px;
+            background: rgba(45, 35, 70, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 1.5rem;
+            padding: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid #a855f755;
+        }
+
+        .suggestion-item:hover {
+            background: rgba(100, 70, 160, 0.8);
+            transform: translateY(-5px);
+            border-color: #bf4eff;
+        }
+
+        @media (max-width: 680px) {
+            .food-grid { gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+            h1 { font-size: 2rem !important; }
+        }
+
+        .loader {
+            border: 3px solid rgba(191,78,255,0.2);
+            border-top: 3px solid #bf4eff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .badge {
+            background: #bf4eff20;
+            border-radius: 40px;
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .admin-link {
+            background: rgba(191,78,255,0.2);
+            border: 1px solid #bf4eff;
+            border-radius: 40px;
+            padding: 8px 20px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .admin-link:hover {
+            background: #bf4eff;
+            transform: scale(1.05);
+        }
+
+        .price-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: linear-gradient(135deg, #bf4eff, #8b5cf6);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+<!-- WELCOME SCREEN -->
+<div id="welcomeScreen" class="welcome-screen">
+    <div class="welcome-content">
+        <div class="floating-icon" style="font-size: 5rem; margin-bottom: 1rem;">🍔✨</div>
+        <h1 style="font-size: 3rem; background: linear-gradient(135deg, #fff, #d9a7ff); -webkit-background-clip: text; background-clip: text; color: transparent;">Welcome to SOMAGAM</h1>
+        <h2 style="font-size: 1.8rem; margin: 1rem 0;">Easy Foods Delivery Platform</h2>
+        <p style="font-size: 1.2rem; opacity: 0.9; margin-bottom: 2rem;">Easy to Order Your Delicious Food</p>
+        <button id="getStartedBtn" class="btn-primary" style="padding: 14px 44px; font-size: 1.2rem;">🚀 Get Started</button>
+    </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" class="main-app" style="display: none;">
+    <header style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 5%; flex-wrap: wrap; gap: 1rem;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-utensils" style="font-size: 2.2rem; color: #bf4eff;"></i>
+            <span style="font-weight: 800; font-size: 1.8rem; background: linear-gradient(135deg,#f0e6ff,#bf4eff); -webkit-background-clip:text; background-clip:text; color:transparent;">Easy Foods</span>
+        </div>
+        <a href="admin_panel.html" class="admin-link">
+            <i class="fas fa-lock"></i> Admin Panel
+        </a>
+    </header>
+
+    <main style="padding: 1rem 5% 4rem;">
+        <div style="text-align: center; margin-bottom: 3rem;">
+            <h1 style="font-size: 2.8rem; font-weight: 700;">✨ Fresh Bites, <span style="color:#bf4eff;">Instant Delivery</span></h1>
+            <p style="opacity:0.8; font-size: 1.1rem;">Handpicked delights from our kitchen to your door</p>
+        </div>
+
+        <div id="foodItemsContainer" class="food-grid">
+            <div class="loader"></div>
+        </div>
+
+        <!-- Suggested Food Section -->
+        <div id="suggestedSection" style="margin-top: 4rem;">
+            <h3 style="margin-bottom: 1.5rem; font-size: 1.8rem;">
+                <i class="fas fa-fire" style="color: #bf4eff;"></i> Suggested for You
+            </h3>
+            <div id="suggestedRow" class="suggestions-row"></div>
+        </div>
+    </main>
+</div>
+
+<script>
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyBdSX7qkOpnMSzgGbWvFYKza4SEtboW4Wk",
+        authDomain: "easy-foods-2f7b7.firebaseapp.com",
+        databaseURL: "https://easy-foods-2f7b7-default-rtdb.firebaseio.com",
+        projectId: "easy-foods-2f7b7",
+        storageBucket: "easy-foods-2f7b7.firebasestorage.app",
+        messagingSenderId: "571857699423",
+        appId: "1:571857699423:web:633c6acf7749658c7391ea",
+        measurementId: "G-MHFRD518T2"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Global State
+    let currentFoods = [];
+
+    // DOM Elements
+    const welcomeDiv = document.getElementById('welcomeScreen');
+    const mainAppDiv = document.getElementById('mainApp');
+    const foodContainer = document.getElementById('foodItemsContainer');
+    const suggestedRow = document.getElementById('suggestedRow');
+
+    // Helper Functions
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function showMainApp() {
+        welcomeDiv.style.opacity = "0";
+        setTimeout(() => {
+            welcomeDiv.style.display = "none";
+            mainAppDiv.style.display = "block";
+            setTimeout(() => { mainAppDiv.style.opacity = "1"; }, 50);
+        }, 600);
+    }
+
+    // Open Order Modal with Food Details
+    function openOrderModal(foodItem) {
+        let modal = document.getElementById('orderModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'orderModal';
+            modal.className = 'modal';
+            document.body.appendChild(modal);
+        }
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2 style="font-size: 1.8rem;"><i class="fas fa-shopping-cart"></i> Complete Order</h2>
+                    <button id="closeModalBtn" style="background: none; border: none; font-size: 32px; color: white; cursor: pointer;">&times;</button>
+                </div>
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; padding: 1rem; background: rgba(191,78,255,0.1); border-radius: 1rem;">
+                    <img src="${foodItem.imageUrl || 'https://picsum.photos/80/80'}" width="80" height="80" style="border-radius: 1rem; object-fit: cover;">
+                    <div>
+                        <h3 style="font-size: 1.3rem;">${escapeHtml(foodItem.name)}</h3>
+                        <p style="opacity: 0.8; font-size: 0.85rem;">${escapeHtml(foodItem.description?.substring(0, 80) || 'Delicious meal')}</p>
+                        <strong style="color: #bf4eff; font-size: 1.2rem;">₹${foodItem.price}</strong>
+                    </div>
+                </div>
+                <input type="text" id="custName" placeholder="Full Name *" autocomplete="off">
+                <input type="tel" id="custPhone" placeholder="Mobile Number *" autocomplete="off">
+                <textarea id="custAddress" rows="3" placeholder="Delivery Address *"></textarea>
+                <button id="confirmOrderBtn" class="btn-primary" style="width: 100%; margin-top: 0.5rem;">✅ Confirm Order</button>
+            </div>
+        `;
+        
+        modal.classList.add('active');
+        
+        document.getElementById('closeModalBtn').addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+        
+        document.getElementById('confirmOrderBtn').addEventListener('click', async () => {
+            const name = document.getElementById('custName').value.trim();
+            const phone = document.getElementById('custPhone').value.trim();
+            const address = document.getElementById('custAddress').value.trim();
+            
+            if (!name || !phone || !address) {
+                alert("❌ Please fill all fields (Name, Phone, Address)");
+                return;
+            }
+            
+            const orderObj = {
+                foodId: foodItem.id,
+                foodName: foodItem.name,
+                totalPrice: foodItem.price,
+                customerName: name,
+                mobile: phone,
+                address: address,
+                timestamp: Date.now(),
+                status: "Pending"
+            };
+            
+            try {
+                await db.ref('orders').push(orderObj);
+                alert(`✅ Order Placed Successfully!\n\n🍔 ${foodItem.name}\n💰 ₹${foodItem.price}\n📦 Delivery to: ${address.substring(0, 50)}`);
+                modal.classList.remove('active');
+            } catch (error) {
+                alert("❌ Error placing order. Please try again.");
+                console.error(error);
+            }
+        });
+    }
+
+    // Render Food Cards
+    function renderUserFoods(foods) {
+        if (!foodContainer) return;
+        
+        if (!foods || foods.length === 0) {
+            foodContainer.innerHTML = `
+                <div class="glass-card" style="grid-column: 1/-1; text-align: center; padding: 3rem;">
+                    <i class="fas fa-info-circle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                    <h3>No Items Available Yet</h3>
+                    <p style="opacity: 0.8;">Admin will upload delicious food items soon! 🍕✨</p>
+                </div>
+            `;
+            return;
+        }
+        
+        foodContainer.innerHTML = foods.map(food => `
+            <div class="food-card" data-id="${food.id}">
+                <div style="height: 200px; overflow: hidden; position: relative;">
+                    <img src="${food.imageUrl || 'https://picsum.photos/300/200?random=' + food.id}" 
+                         style="width: 100%; height: 100%; object-fit: cover;" 
+                         onerror="this.src='https://via.placeholder.com/300x200?text=Yummy+Food'">
+                    <div class="price-tag">
+                        ₹${food.price}
+                    </div>
+                </div>
+                <div style="padding: 1.2rem;">
+                    <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem;">${escapeHtml(food.name)}</h3>
+                    <p style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 1rem; line-height: 1.4;">
+                        ${escapeHtml(food.description?.substring(0, 100) || 'Freshly prepared with love ❤️')}
+                    </p>
+                    <button class="order-now-btn btn-primary" style="width: 100%; padding: 12px;" data-id="${food.id}">
+                        <i class="fas fa-shopping-cart"></i> Order Now 🛵
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+        // Attach order events
+        document.querySelectorAll('.order-now-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                const foodItem = currentFoods.find(f => f.id === id);
+                if (foodItem) openOrderModal(foodItem);
+            });
+        });
+        
+        // Card click for quick order
+        document.querySelectorAll('.food-card').forEach(card => {
+            card.addEventListener('click', (e) => {
+                if (e.target.classList.contains('order-now-btn')) return;
+                const id = card.getAttribute('data-id');
+                const foodItem = currentFoods.find(f => f.id === id);
+                if (foodItem) openOrderModal(foodItem);
+            });
+        });
+    }
+
+    // Render Suggested Foods (2 random items)
+    function renderSuggestedFoods() {
+        if (!suggestedRow) return;
+        
+        if (!currentFoods.length) {
+            suggestedRow.innerHTML = '<div class="glass-card" style="padding: 1rem; text-align: center;">No suggestions available</div>';
+            return;
+        }
+        
+        let suggestedItems = [...currentFoods];
+        if (suggestedItems.length > 2) {
+            suggestedItems = suggestedItems.sort(() => 0.5 - Math.random()).slice(0, 2);
+        }
+        
+        suggestedRow.innerHTML = suggestedItems.map(food => `
+            <div class="suggestion-item" data-id="${food.id}">
+                <img src="${food.imageUrl || 'https://picsum.photos/240/150?random=' + food.id}" 
+                     style="width: 100%; height: 140px; border-radius: 1rem; object-fit: cover; margin-bottom: 0.5rem;"
+                     onerror="this.src='https://via.placeholder.com/240x140?text=Food'">
+                <p style="font-weight: 600;">${escapeHtml(food.name)}</p>
+                <p style="color: #bf4eff; font-weight: bold;">₹${food.price}</p>
+                <small style="opacity: 0.7;">Click to order</small>
+            </div>
+        `).join('');
+        
+        document.querySelectorAll('.suggestion-item').forEach(el => {
+            el.addEventListener('click', () => {
+                const fid = el.getAttribute('data-id');
+                const found = currentFoods.find(f => f.id === fid);
+                if (found) openOrderModal(found);
+            });
+        });
+    }
+
+    // Fetch Foods from Firebase
+    function fetchFoods() {
+        db.ref('foods').on('value', (snapshot) => {
+            const data = snapshot.val();
+            const foodsArray = [];
+            
+            if (data) {
+                for (let id in data) {
+                    foodsArray.push({ id, ...data[id] });
+                }
+            }
+            
+            currentFoods = foodsArray;
+            renderUserFoods(currentFoods);
+            renderSuggestedFoods();
+        });
+    }
+
+    // Get Started Button
+    document.getElementById('getStartedBtn')?.addEventListener('click', () => {
+        showMainApp();
+        fetchFoods();
+    });
+
+    // Close modal on outside click
+    window.addEventListener('click', (e) => {
+        const modal = document.getElementById('orderModal');
+        if (modal && modal.classList.contains('active') && e.target === modal) {
+            modal.classList.remove('active');
+        }
+    });
+</script>
+</body>
+</html>

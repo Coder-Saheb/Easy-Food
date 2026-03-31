@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Easy Foods | Admin Dashboard</title>
+    <!-- Google Fonts & Font Awesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at 20% 30%, #0a0a1a, #03030c);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e1a2f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #bf4eff;
+            border-radius: 20px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 #bf4eff80; }
+            70% { box-shadow: 0 0 0 8px #bf4eff00; }
+            100% { box-shadow: 0 0 0 0 transparent; }
+        }
+
+        .glass-card {
+            background: rgba(20, 15, 40, 0.55);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            border: 1px solid rgba(191, 78, 255, 0.3);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 15px rgba(191,78,255,0.2);
+            transition: all 0.3s ease;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .glass-card:hover {
+            border-color: #bf4eff;
+            box-shadow: 0 30px 50px rgba(191,78,255,0.25);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #a855f7, #6d28d9);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 60px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(168,85,247,0.4);
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02);
+            background: linear-gradient(135deg, #c084fc, #8b5cf6);
+            box-shadow: 0 8px 28px rgba(168,85,247,0.7);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff4757, #c0392b);
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #ff6b7c, #e74c3c);
+            transform: scale(1.02);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #00b894, #019875);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f39c12, #e67e22);
+        }
+
+        input, textarea {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid #a855f770;
+            border-radius: 2rem;
+            padding: 12px 18px;
+            color: white;
+            width: 100%;
+            outline: none;
+            transition: 0.2s;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #bf4eff;
+            box-shadow: 0 0 10px #bf4eff;
+        }
+
+        .food-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 1.2rem;
+            padding: 1rem;
+            margin-bottom: 0.8rem;
+            transition: all 0.3s;
+            animation: slideIn 0.3s ease-out;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .food-item:hover {
+            background: rgba(191,78,255,0.15);
+            transform: translateX(5px);
+        }
+
+        .food-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+        }
+
+        .food-info img {
+            width: 60px;
+            height: 60px;
+            border-radius: 1rem;
+            object-fit: cover;
+        }
+
+        .order-card {
+            background: rgba(0,0,0,0.4);
+            border-left: 3px solid #bf4eff;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 1rem;
+            transition: all 0.3s;
+        }
+
+        .order-card:hover {
+            background: rgba(191,78,255,0.1);
+            transform: translateX(5px);
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, rgba(168,85,247,0.2), rgba(109,40,217,0.2));
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(191,78,255,0.3);
+            transition: all 0.3s;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-5px);
+            border-color: #bf4eff;
+        }
+
+        .tab-btn {
+            background: rgba(191,78,255,0.2);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 40px;
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, #a855f7, #6d28d9);
+            box-shadow: 0 0 15px #bf4eff;
+        }
+
+        .tab-btn:hover {
+            background: rgba(191,78,255,0.4);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .glass-card { padding: 1rem; }
+            h2 { font-size: 1.3rem; }
+            .food-info img { width: 50px; height: 50px; }
+            .tab-btn { padding: 8px 16px; font-size: 0.85rem; }
+        }
+
+        .loader-small {
+            border: 2px solid rgba(191,78,255,0.2);
+            border-top: 2px solid #bf4eff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #00b894, #019875);
+            padding: 12px 24px;
+            border-radius: 40px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease-out;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            font-weight: 500;
+        }
+
+        .notification.error {
+            background: linear-gradient(135deg, #ff4757, #c0392b);
+        }
+
+        .edit-mode {
+            background: rgba(191,78,255,0.2);
+            border-left: 3px solid #bf4eff;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-buttons button {
+            padding: 6px 16px;
+            border-radius: 40px;
+            border: none;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            opacity: 0.7;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+<div style="padding: 1rem 5% 3rem;">
+    <!-- Header -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <i class="fas fa-crown" style="font-size: 2.2rem; color: #bf4eff;"></i>
+            <div>
+                <h1 style="font-size: 1.8rem; background: linear-gradient(135deg, #fff, #bf4eff); -webkit-background-clip: text; background-clip: text; color: transparent;">Easy Foods Admin</h1>
+                <p style="opacity: 0.7; font-size: 0.85rem;">Manage Menu & Track Orders</p>
+            </div>
+        </div>
+        <a href="user_panel.html" style="background: rgba(191,78,255,0.2); border: 1px solid #bf4eff; border-radius: 40px; padding: 10px 24px; color: white; text-decoration: none; transition: 0.3s; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fas fa-store"></i> Back to Store
+        </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+        <div class="stats-card">
+            <i class="fas fa-utensils" style="font-size: 2rem; color: #bf4eff; margin-bottom: 0.5rem;"></i>
+            <h3 id="totalFoods" style="font-size: 2rem;">0</h3>
+            <p>Total Food Items</p>
+        </div>
+        <div class="stats-card">
+            <i class="fas fa-shopping-cart" style="font-size: 2rem; color: #bf4eff; margin-bottom: 0.5rem;"></i>
+            <h3 id="totalOrders" style="font-size: 2rem;">0</h3>
+            <p>Total Orders</p>
+        </div>
+        <div class="stats-card">
+            <i class="fas fa-rupee-sign" style="font-size: 2rem; color: #bf4eff; margin-bottom: 0.5rem;"></i>
+            <h3 id="totalRevenue" style="font-size: 2rem;">0</h3>
+            <p>Total Revenue</p>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+        <button class="tab-btn active" id="tabAddBtn">➕ Add New Food</button>
+        <button class="tab-btn" id="tabManageBtn">📋 Manage Menu</button>
+        <button class="tab-btn" id="tabOrdersBtn">📦 View Orders</button>
+    </div>
+
+    <!-- Add Food Section -->
+    <div id="addTab" class="glass-card" style="padding: 1.8rem;">
+        <h3 style="margin-bottom: 1rem;"><i class="fas fa-plus-circle"></i> Add New Food Item</h3>
+        <div style="margin-top: 1rem;">
+            <input type="text" id="foodName" placeholder="Food Name *" autocomplete="off">
+            <input type="text" id="foodImage" placeholder="Image URL (e.g., https://picsum.photos/300/200)" value="https://picsum.photos/300/200?random=1">
+            <textarea id="foodDesc" rows="2" placeholder="Description (tasty, fresh, delicious...)" style="resize: vertical;"></textarea>
+            <input type="number" id="foodPrice" placeholder="Price (₹) *">
+            <button id="addFoodBtn" class="btn-primary" style="width: 100%;"><i class="fas fa-upload"></i> Upload Food</button>
+        </div>
+    </div>
+
+    <!-- Manage Menu Section -->
+    <div id="manageTab" class="glass-card" style="padding: 1.5rem; display: none;">
+        <h3 style="margin-bottom: 1rem;"><i class="fas fa-list-ul"></i> Manage Food Items</h3>
+        <div id="adminFoodList" style="margin-top: 1rem;"></div>
+    </div>
+
+    <!-- Orders Section -->
+    <div id="ordersTab" class="glass-card" style="padding: 1.5rem; display: none;">
+        <h3 style="margin-bottom: 1rem;"><i class="fas fa-truck"></i> Customer Orders</h3>
+        <div id="ordersListAdmin" style="margin-top: 1rem; max-height: 500px; overflow-y: auto;"></div>
+    </div>
+</div>
+
+<script>
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyBdSX7qkOpnMSzgGbWvFYKza4SEtboW4Wk",
+        authDomain: "easy-foods-2f7b7.firebaseapp.com",
+        databaseURL: "https://easy-foods-2f7b7-default-rtdb.firebaseio.com",
+        projectId: "easy-foods-2f7b7",
+        storageBucket: "easy-foods-2f7b7.firebasestorage.app",
+        messagingSenderId: "571857699423",
+        appId: "1:571857699423:web:633c6acf7749658c7391ea",
+        measurementId: "G-MHFRD518T2"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // Global State
+    let currentFoods = [];
+    let currentOrders = [];
+    let editModeId = null;
+
+    // DOM Elements
+    const addTab = document.getElementById('addTab');
+    const manageTab = document.getElementById('manageTab');
+    const ordersTab = document.getElementById('ordersTab');
+    const tabAddBtn = document.getElementById('tabAddBtn');
+    const tabManageBtn = document.getElementById('tabManageBtn');
+    const tabOrdersBtn = document.getElementById('tabOrdersBtn');
+    const adminFoodList = document.getElementById('adminFoodList');
+    const ordersListAdmin = document.getElementById('ordersListAdmin');
+    const totalFoodsEl = document.getElementById('totalFoods');
+    const totalOrdersEl = document.getElementById('totalOrders');
+    const totalRevenueEl = document.getElementById('totalRevenue');
+
+    // Helper Functions
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function showNotification(message, isError = false) {
+        const notification = document.createElement('div');
+        notification.className = `notification ${isError ? 'error' : ''}`;
+        notification.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-triangle' : 'fa-check-circle'}"></i> ${message}`;
+        document.body.appendChild(notification);
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    function switchTab(tab) {
+        addTab.style.display = 'none';
+        manageTab.style.display = 'none';
+        ordersTab.style.display = 'none';
+        tabAddBtn.classList.remove('active');
+        tabManageBtn.classList.remove('active');
+        tabOrdersBtn.classList.remove('active');
+        
+        if (tab === 'add') {
+            addTab.style.display = 'block';
+            tabAddBtn.classList.add('active');
+        } else if (tab === 'manage') {
+            manageTab.style.display = 'block';
+            tabManageBtn.classList.add('active');
+            renderAdminFoodList();
+        } else if (tab === 'orders') {
+            ordersTab.style.display = 'block';
+            tabOrdersBtn.classList.add('active');
+            renderOrdersList();
+        }
+    }
+
+    // Add New Food
+    async function addNewFood() {
+        const name = document.getElementById('foodName').value.trim();
+        const imageUrl = document.getElementById('foodImage').value.trim();
+        const description = document.getElementById('foodDesc').value.trim();
+        const price = parseFloat(document.getElementById('foodPrice').value);
+        
+        if (!name || !price) {
+            showNotification('Please fill Food Name and Price', true);
+            return;
+        }
+        
+        if (isNaN(price) || price <= 0) {
+            showNotification('Please enter a valid price', true);
+            return;
+        }
+        
+        try {
+            const newRef = db.ref('foods').push();
+            await newRef.set({
+                name: name,
+                imageUrl: imageUrl || 'https://picsum.photos/300/200',
+                description: description || 'Delicious food item',
+                price: price,
+                createdAt: Date.now()
+            });
+            
+            showNotification('✅ Food added successfully!');
+            clearAddForm();
+            fetchFoods();
+        } catch (error) {
+            console.error(error);
+            showNotification('Error adding food', true);
+        }
+    }
+
+    function clearAddForm() {
+        document.getElementById('foodName').value = '';
+        document.getElementById('foodImage').value = 'https://picsum.photos/300/200';
+        document.getElementById('foodDesc').value = '';
+        document.getElementById('foodPrice').value = '';
+        editModeId = null;
+    }
+
+    // Update Food
+    async function updateFoodItem(id) {
+        const name = document.getElementById('foodName').value.trim();
+        const imageUrl = document.getElementById('foodImage').value.trim();
+        const description = document.getElementById('foodDesc').value.trim();
+        const price = parseFloat(document.getElementById('foodPrice').value);
+        
+        if (!name || !price) {
+            showNotification('Please fill Food Name and Price', true);
+            return;
+        }
+        
+        try {
+            await db.ref('foods/' + id).update({
+                name: name,
+                imageUrl: imageUrl || 'https://picsum.photos/300/200',
+                description: description || 'Delicious food item',
+                price: price
+            });
+            
+            showNotification('✅ Food updated successfully!');
+            clearAddForm();
+            fetchFoods();
+            switchTab('manage');
+        } catch (error) {
+            console.error(error);
+            showNotification('Error updating food', true);
+        }
+    }
+
+    // Delete Food
+    async function deleteFoodItem(id) {
+        if (confirm('Are you sure you want to delete this food item?')) {
+            try {
+                await db.ref('foods/' + id).remove();
+                showNotification('🗑️ Food deleted successfully!');
+                fetchFoods();
+            } catch (error) {
+                console.error(error);
+                showNotification('Error deleting food', true);
+            }
+        }
+    }
+
+    // Delete Order
+    async function deleteOrder(orderId) {
+        if (confirm('Are you sure you want to delete this order?')) {
+            try {
+                await db.ref('orders/' + orderId).remove();
+                showNotification('Order deleted successfully!');
+                fetchOrders();
+            } catch (error) {
+                console.error(error);
+                showNotification('Error deleting order', true);
+            }
+        }
+    }
+
+    // Edit Food (load into form)
+    function editFoodItem(food) {
+        document.getElementById('foodName').value = food.name;
+        document.getElementById('foodImage').value = food.imageUrl || '';
+        document.getElementById('foodDesc').value = food.description || '';
+        document.getElementById('foodPrice').value = food.price;
+        editModeId = food.id;
+        
+        const addBtn = document.getElementById('addFoodBtn');
+        addBtn.innerHTML = '<i class="fas fa-save"></i> Update Food';
+        addBtn.style.background = 'linear-gradient(135deg, #f39c12, #e67e22)';
+        
+        switchTab('add');
+        
+        // Scroll to form
+        document.getElementById('addTab').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Reset add button
+    function resetAddButton() {
+        const addBtn = document.getElementById('addFoodBtn');
+        addBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Food';
+        addBtn.style.background = '';
+        editModeId = null;
+    }
+
+    // Render Admin Food List
+    function renderAdminFoodList() {
+        if (!adminFoodList) return;
+        
+        if (!currentFoods || currentFoods.length === 0) {
+            adminFoodList.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-utensils"></i>
+                    <p>No food items available</p>
+                    <p style="font-size: 0.85rem;">Click "Add New Food" to get started</p>
+                </div>
+            `;
+            return;
+        }
+        
+        adminFoodList.innerHTML = currentFoods.map(food => `
+            <div class="food-item">
+                <div class="food-info">
+                    <img src="${food.imageUrl || 'https://picsum.photos/60/60'}" onerror="this.src='https://via.placeholder.com/60x60?text=Food'">
+                    <div>
+                        <strong style="font-size: 1.1rem;">${escapeHtml(food.name)}</strong>
+                        <p style="font-size: 0.85rem; opacity: 0.8;">₹${food.price}</p>
+                        <p style="font-size: 0.75rem; opacity: 0.6;">${escapeHtml(food.description?.substring(0, 60) || 'No description')}</p>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button onclick="editFoodItemById('${food.id}')" style="background: #f39c12; color: white;">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                    <button onclick="deleteFoodItemById('${food.id}')" style="background: #ff4757; color: white;">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Render Orders List
+    function renderOrdersList() {
+        if (!ordersListAdmin) return;
+        
+        if (!currentOrders || currentOrders.length === 0) {
+            ordersListAdmin.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-shopping-cart"></i>
+                    <p>No orders placed yet</p>
+                    <p style="font-size: 0.85rem;">Orders will appear here when customers place them</p>
+                </div>
+            `;
+            return;
+        }
+        
+        ordersListAdmin.innerHTML = currentOrders.map(order => `
+            <div class="order-card">
+                <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <h4 style="color: #bf4eff; margin-bottom: 0.5rem;">
+                            <i class="fas fa-user"></i> ${escapeHtml(order.customerName)}
+                        </h4>
+                        <p><i class="fas fa-phone"></i> ${escapeHtml(order.mobile)}</p>
+                        <p><i class="fas fa-utensils"></i> ${escapeHtml(order.foodName)}</p>
+                        <p><i class="fas fa-rupee-sign"></i> ₹${order.totalPrice}</p>
+                        <p><i class="fas fa-map-marker-alt"></i> ${escapeHtml(order.address)}</p>
+                        <p style="font-size: 0.75rem; opacity: 0.6;">
+                            <i class="far fa-clock"></i> ${new Date(order.timestamp).toLocaleString()}
+                        </p>
+                    </div>
+                    <button onclick="deleteOrderById('${order.id}')" class="btn-danger" style="padding: 6px 16px; border-radius: 40px; border: none;">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Update Stats
+    function updateStats() {
+        totalFoodsEl.textContent = currentFoods.length;
+        totalOrdersEl.textContent = currentOrders.length;
+        const totalRevenue = currentOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
+        totalRevenueEl.textContent = totalRevenue;
+    }
+
+    // Fetch Foods from Firebase
+    function fetchFoods() {
+        db.ref('foods').on('value', (snapshot) => {
+            const data = snapshot.val();
+            const foodsArray = [];
+            
+            if (data) {
+                for (let id in data) {
+                    foodsArray.push({ id, ...data[id] });
+                }
+            }
+            
+            currentFoods = foodsArray;
+            if (manageTab.style.display !== 'none') {
+                renderAdminFoodList();
+            }
+            updateStats();
+        });
+    }
+
+    // Fetch Orders from Firebase
+    function fetchOrders() {
+        db.ref('orders').on('value', (snapshot) => {
+            const data = snapshot.val();
+            const ordersArray = [];
+            
+            if (data) {
+                for (let id in data) {
+                    ordersArray.push({ id, ...data[id] });
+                }
+                // Sort by newest first
+                ordersArray.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            }
+            
+            currentOrders = ordersArray;
+            if (ordersTab.style.display !== 'none') {
+                renderOrdersList();
+            }
+            updateStats();
+        });
+    }
+
+    // Global functions for onclick
+    window.editFoodItemById = function(id) {
+        const food = currentFoods.find(f => f.id === id);
+        if (food) editFoodItem(food);
+    };
+    
+    window.deleteFoodItemById = function(id) {
+        deleteFoodItem(id);
+    };
+    
+    window.deleteOrderById = function(id) {
+        deleteOrder(id);
+    };
+
+    // Tab Event Listeners
+    tabAddBtn.addEventListener('click', () => {
+        resetAddButton();
+        switchTab('add');
+    });
+    
+    tabManageBtn.addEventListener('click', () => {
+        resetAddButton();
+        switchTab('manage');
+        renderAdminFoodList();
+    });
+    
+    tabOrdersBtn.addEventListener('click', () => {
+        resetAddButton();
+        switchTab('orders');
+        renderOrdersList();
+    });
+
+    // Add/Update Button Logic
+    document.getElementById('addFoodBtn').addEventListener('click', () => {
+        if (editModeId) {
+            updateFoodItem(editModeId);
+            resetAddButton();
+        } else {
+            addNewFood();
+        }
+    });
+
+    // Initialize
+    fetchFoods();
+    fetchOrders();
+    
+    // Set initial tab
+    switchTab('add');
+</script>
+</body>
+</html>
